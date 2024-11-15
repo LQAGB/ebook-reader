@@ -15,14 +15,15 @@
         <main>
             <section class="upload-section">
                 <h2>上传电子书</h2>
-                <form action="/upload" method="post" enctype="multipart/form-data">
+                <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
                     <div class="file-upload">
-                        <input type="file" name="book" id="book" accept=".pdf,.epub,.docx,.mobi,.txt">
+                        <input type="file" name="book" id="book" accept=".pdf,.epub,.docx,.mobi,.txt" required>
                         <label for="book">选择文件</label>
                     </div>
-                    <button type="submit">上传</button>
+                    <button type="submit" id="uploadBtn">上传</button>
                 </form>
                 <p class="hint">支持的格式：PDF, EPUB, DOCX, MOBI, TXT (最大100MB)</p>
+                <div id="uploadStatus" style="display: none;"></div>
             </section>
             
             <section class="quick-links">
@@ -30,5 +31,56 @@
             </section>
         </main>
     </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('book');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadStatus = document.getElementById('uploadStatus');
+            
+            if (!fileInput.files.length) {
+                alert('请选择文件');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            if (file.size > 100 * 1024 * 1024) {
+                alert('文件大小不能超过100MB');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('book', file);
+
+            uploadBtn.disabled = true;
+            uploadStatus.style.display = 'block';
+            uploadStatus.textContent = '上传中...';
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    window.location.href = '/library';
+                } else {
+                    const error = await response.json();
+                    uploadStatus.textContent = `上传失败: ${error.error}`;
+                    uploadBtn.disabled = false;
+                }
+            } catch (error) {
+                uploadStatus.textContent = '上传失败，请重试';
+                uploadBtn.disabled = false;
+            }
+        });
+
+        document.getElementById('book').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name || '未选择文件';
+            document.querySelector('label[for="book"]').textContent = fileName;
+        });
+    </script>
 </body>
 </html> 
