@@ -3,57 +3,845 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>阅读 - <%= filename %></title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/reader.css">
-    <!-- 使用本地资源 -->
-    <script src="/lib/pdf.js/pdf.min.js"></script>
-    <script src="/lib/jszip/jszip.min.js"></script>
-    <script src="/lib/epub.js/epub.min.js"></script>
+    <title>阅读 - <%= book.title %></title>
+    <script src="/js/lib/jszip.min.js"></script>
+    <script src="/js/lib/epub.min.js"></script>
+    <script src="/js/lib/pdf.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f5f5f7;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        .reader-header {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        .book-title {
+            margin: 0;
+            font-size: 1.2rem;
+            color: #1d1d1f;
+        }
+        #viewer {
+            flex: 1;
+            background: white;
+            margin: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow: hidden;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+        }
+        button {
+            background: #0071e3;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #0077ed;
+        }
+        .return-button {
+            background: #666;
+        }
+        .return-button:hover {
+            background: #777;
+        }
+        #txt-viewer {
+            flex: 1;
+            background: white;
+            margin: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 40px;
+            overflow-y: auto;
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+
+        #pdf-viewer {
+            flex: 1;
+            background: white;
+            margin: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .page-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .page-number {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        #doc-viewer {
+            flex: 1;
+            background: white;
+            margin: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        /* 目录侧边栏样式 */
+        .toc-sidebar {
+            position: fixed;
+            left: -300px;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toc-sidebar.open {
+            left: 0;
+        }
+
+        .toc-header {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toc-title {
+            margin: 0;
+            font-size: 1.2rem;
+            color: #1d1d1f;
+        }
+
+        .toc-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .toc-item {
+            padding: 0.5rem;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+        }
+
+        .toc-item:hover {
+            background: #f5f5f7;
+            color: #0071e3;
+        }
+
+        .toc-item.active {
+            background: #e8f2ff;
+            color: #0071e3;
+        }
+
+        /* 导航按钮样式 */
+        .nav-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .nav-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #0071e3;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .toc-toggle {
+            padding: 8px 20px;
+            border-radius: 20px;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toc-toggle:hover {
+            background: #e5e5e7;
+        }
+
+        /* 进度条样式 */
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #eee;
+            z-index: 1000;
+        }
+
+        .progress {
+            height: 100%;
+            background: #0071e3;
+            width: 0;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            position: fixed;
+            bottom: 10px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            z-index: 1000;
+        }
+
+        .font-controls {
+            display: flex;
+            gap: 8px;
+            margin-right: 15px;
+        }
+
+        .font-controls button {
+            padding: 4px 12px;
+            font-weight: bold;
+        }
+
+        #viewer iframe {
+            transition: transform 0.3s ease;
+        }
+
+        .swipe-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 999;
+            display: none;
+        }
+
+        .swipe-overlay.active {
+            display: block;
+        }
+
+        .font-size-controls {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            padding: 10px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .font-size-controls button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .font-size-controls button:hover {
+            background: #e5e5e7;
+        }
+
+        .current-font-size {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* 添加触摸区域样式 */
+        .touch-area {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            width: 30%;
+            z-index: 99;
+        }
+
+        .touch-area.left {
+            left: 0;
+        }
+
+        .touch-area.right {
+            right: 0;
+        }
+
+        .touch-hint {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .touch-hint.left {
+            left: 40px;
+        }
+
+        .touch-hint.right {
+            right: 40px;
+        }
+    </style>
 </head>
 <body>
-    <div class="reader-container">
-        <header class="reader-header">
-            <nav class="reader-nav">
-                <a href="/library" class="nav-link">
-                    <svg class="back-icon" viewBox="0 0 24 24">
-                        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-                    </svg>
-                    返回图书馆
-                </a>
-                <h1 class="book-title"><%= filename.split('.')[0] %></h1>
-            </nav>
-            <div class="reader-controls">
-                <button id="prev-btn" class="control-btn">上一页</button>
-                <span id="page-info">页码: <span id="current-page">1</span> / <span id="total-pages">-</span></span>
-                <button id="next-btn" class="control-btn">下一页</button>
-            </div>
-        </header>
-
-        <main class="reader-main">
-            <div id="sidebar" class="sidebar">
-                <div class="sidebar-header">
-                    <h3>目录</h3>
-                    <button id="toggle-sidebar" class="toggle-btn">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                        </svg>
-                    </button>
+    <div class="reader-header">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <button class="toc-toggle" onclick="toggleToc()">目录</button>
+            <h1 class="book-title"><%= book.title %></h1>
+        </div>
+        <div class="controls">
+            <% if (book.fileType === '.epub') { %>
+                <button onclick="prevPage()">上一页</button>
+                <button onclick="nextPage()">下一页</button>
+            <% } else if (book.fileType === '.pdf') { %>
+                <div class="page-controls">
+                    <button onclick="prevPage()">上一页</button>
+                    <span class="page-number" id="page-number"></span>
+                    <button onclick="nextPage()">下一页</button>
                 </div>
-                <div id="toc" class="toc"></div>
-            </div>
-
-            <div id="reader-content" class="reader-content">
-                <div id="viewer"></div>
-            </div>
-        </main>
+            <% } %>
+            <button class="return-button" onclick="window.location.href='/'">返回图书馆</button>
+        </div>
     </div>
 
+    <div class="nav-buttons">
+        <button class="nav-button" onclick="prevPage()">←</button>
+        <button class="nav-button" onclick="nextPage()">→</button>
+    </div>
+
+    <div class="toc-sidebar" id="tocSidebar">
+        <div class="toc-header">
+            <h2 class="toc-title">目录</h2>
+            <button class="toc-toggle" onclick="toggleToc()">关闭</button>
+        </div>
+        <div class="toc-content" id="tocContent"></div>
+    </div>
+
+    <div class="progress-bar">
+        <div class="progress" id="readingProgress"></div>
+    </div>
+    <div class="progress-text" id="progressText"></div>
+
+    <% if (book.fileType === '.epub') { %>
+        <div id="viewer"></div>
+    <% } else if (book.fileType === '.pdf') { %>
+        <div id="pdf-viewer"></div>
+    <% } else if (book.fileType === '.txt') { %>
+        <div id="txt-viewer"></div>
+    <% } else if (['.doc', '.docx'].includes(book.fileType)) { %>
+        <div id="doc-viewer"></div>
+    <% } %>
+
+    <div class="font-size-controls">
+        <button onclick="changeFontSize('decrease')" title="减小字号">A-</button>
+        <span class="current-font-size" id="fontSizeDisplay"><%= currentFontSize %>%</span>
+        <button onclick="changeFontSize('increase')" title="增大字号">A+</button>
+    </div>
+
+    <div class="touch-area left" id="leftTouchArea"></div>
+    <div class="touch-area right" id="rightTouchArea"></div>
+    <div class="touch-hint left" id="leftHint">上一页</div>
+    <div class="touch-hint right" id="rightHint">下一页</div>
+
     <script>
-        const book = JSON.parse('<%- JSON.stringify(book) %>');
-        const fileExt = book.file_type;
-        const filePath = `/books/${book.file_name}`;
+        // 在脚本开始处定义全局变量
+        let book = null;
+        let rendition = null;
+        let currentFontSize = <%= currentFontSize %>;
+        const MIN_FONT_SIZE = <%= MIN_FONT_SIZE %>;
+        const MAX_FONT_SIZE = <%= MAX_FONT_SIZE %>;
+        const FONT_STEP = <%= FONT_STEP %>;
+
+        // 根据文件类型初始化不同的阅读器
+        const fileType = '<%= book.fileType %>';
+        const filePath = '/uploads/<%= book.path %>';
+
+        // 初始化函数
+        async function initReader() {
+            try {
+                switch (fileType) {
+                    case '.epub':
+                        await initEpubReader();
+                        break;
+                    case '.pdf':
+                        await initPdfReader();
+                        break;
+                    case '.txt':
+                        await initTxtReader();
+                        break;
+                    case '.doc':
+                    case '.docx':
+                        await initDocReader();
+                        break;
+                    default:
+                        throw new Error('不支持的文件格式');
+                }
+                console.log('阅读器初始化成功');
+            } catch (error) {
+                console.error('阅读器初始化失败:', error);
+                alert('加载失败，请稍后重试');
+            }
+        }
+
+        // 页面加载完成后初始化阅读器
+        document.addEventListener('DOMContentLoaded', initReader);
+
+        // EPUB阅读器初始化
+        async function initEpubReader() {
+            try {
+                // 创建新的 Book 对象
+                window.book = ePub(filePath);
+                console.log('EPUB 对象创建成功');
+
+                // 创建渲染器
+                window.rendition = book.renderTo("viewer", {
+                    width: '100%',
+                    height: '100%',
+                    spread: 'none',
+                    flow: 'paginated'
+                });
+                console.log('渲染器创建成功');
+
+                // 等待书籍加载完成
+                await book.ready;
+                console.log('EPUB 加载完成');
+
+                // 设置字体大小
+                rendition.themes.fontSize(`${currentFontSize}%`);
+
+                // 显示内容
+                await rendition.display();
+                console.log('内容显示成功');
+
+                // 绑定翻页事件
+                window.prevPage = () => {
+                    console.log('上一页');
+                    rendition.prev();
+                };
+
+                window.nextPage = () => {
+                    console.log('下一页');
+                    rendition.next();
+                };
+
+                // 键盘事件
+                document.addEventListener('keyup', (e) => {
+                    if (e.key === 'ArrowLeft') prevPage();
+                    if (e.key === 'ArrowRight') nextPage();
+                });
+
+                // 进度更新事件
+                rendition.on('relocated', (location) => {
+                    console.log('位置更新:', location);
+                    try {
+                        const percentage = Math.floor((location.start.location / book.locations.total) * 100);
+                        document.getElementById('readingProgress').style.width = `${percentage}%`;
+                        document.getElementById('progressText').textContent = `${percentage}%`;
+
+                        // 保存进度
+                        saveProgress({
+                            cfi: location.start.cfi,
+                            percentage: percentage,
+                            chapter: location.start.href
+                        });
+                    } catch (error) {
+                        console.error('更新进度失败:', error);
+                    }
+                });
+
+                // 错误处理
+                rendition.on('error', (error) => {
+                    console.error('渲染错误:', error);
+                });
+
+                // 初始化触摸事件
+                initTouchEvents();
+
+            } catch (error) {
+                console.error('EPUB 阅读器初始化失败:', error);
+                alert('加载电子书失败，请稍后重试');
+            }
+        }
+
+        // 目录开关函数
+        function toggleToc() {
+            const sidebar = document.getElementById('tocSidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // PDF阅读器初始化
+        async function initPdfReader() {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/lib/pdf.worker.min.js';
+            
+            try {
+                const loadingTask = pdfjsLib.getDocument(filePath);
+                const pdf = await loadingTask.promise;
+                let currentPage = 1;
+                const viewer = document.getElementById('pdf-viewer');
+                const pageNumber = document.getElementById('page-number');
+
+                // 添加容器样式
+                viewer.style.overflow = 'auto';
+                viewer.style.display = 'flex';
+                viewer.style.justifyContent = 'center';
+                viewer.style.alignItems = 'flex-start';
+                viewer.style.padding = '20px';
+
+                async function renderPage(pageNum) {
+                    const page = await pdf.getPage(pageNum);
+                    
+                    // 获取视口尺寸
+                    const viewerWidth = viewer.clientWidth - 40; // 减去边距
+                    const viewerHeight = viewer.clientHeight - 40;
+                    
+                    // 获取页面原始尺寸
+                    const originalViewport = page.getViewport({ scale: 1 });
+                    
+                    // 计算合适的缩放比例
+                    let scale = Math.min(
+                        (viewerWidth / originalViewport.width),
+                        (viewerHeight / originalViewport.height)
+                    );
+                    
+                    // 确保最小缩放比例
+                    scale = Math.max(scale, 0.5);
+                    
+                    // 使用计算出的缩放比例创建新视口
+                    const viewport = page.getViewport({ scale });
+
+                    // 创建或重用 canvas
+                    let canvas = viewer.querySelector('canvas');
+                    if (!canvas) {
+                        canvas = document.createElement('canvas');
+                        viewer.innerHTML = '';
+                        viewer.appendChild(canvas);
+                    }
+
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    
+                    // 添加 canvas 样式
+                    canvas.style.maxWidth = '100%';
+                    canvas.style.height = 'auto';
+                    canvas.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+                    canvas.style.borderRadius = '8px';
+
+                    try {
+                        await page.render({
+                            canvasContext: context,
+                            viewport: viewport
+                        }).promise;
+
+                        pageNumber.textContent = `${pageNum} / ${pdf.numPages}`;
+                        
+                        // 更新进度
+                        updateProgress(pageNum, pdf.numPages);
+                    } catch (error) {
+                        console.error('渲染页面失败:', error);
+                    }
+                }
+
+                // 监听窗口大小变化，重新渲染当前页面
+                let resizeTimeout;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(() => {
+                        renderPage(currentPage);
+                    }, 200);
+                });
+
+                function updateProgress(currentPage, totalPages) {
+                    const percentage = Math.round((currentPage / totalPages) * 100);
+                    document.getElementById('readingProgress').style.width = `${percentage}%`;
+                    document.getElementById('progressText').textContent = `${currentPage} / ${totalPages}`;
+                    
+                    saveProgress({
+                        page: currentPage,
+                        totalPages: totalPages,
+                        percentage: percentage
+                    });
+                }
+
+                window.prevPage = () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        renderPage(currentPage);
+                    }
+                };
+
+                window.nextPage = () => {
+                    if (currentPage < pdf.numPages) {
+                        currentPage++;
+                        renderPage(currentPage);
+                    }
+                };
+
+                // 添加键盘快捷键
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowLeft') prevPage();
+                    if (e.key === 'ArrowRight') nextPage();
+                    if (e.key === 'Home') {
+                        currentPage = 1;
+                        renderPage(currentPage);
+                    }
+                    if (e.key === 'End') {
+                        currentPage = pdf.numPages;
+                        renderPage(currentPage);
+                    }
+                });
+
+                // 加载保存的进度
+                <% if (book.readProgress) { %>
+                    try {
+                        const savedProgress = JSON.parse(`<%- book.readProgress %>`);
+                        if (savedProgress.page) {
+                            currentPage = savedProgress.page;
+                        }
+                    } catch (error) {
+                        console.error('解析保存的进度失败:', error);
+                    }
+                <% } %>
+
+                // 渲染初始页面
+                await renderPage(currentPage);
+
+            } catch (error) {
+                console.error('PDF 加载失败:', error);
+                alert('加载 PDF 失败，请稍后重试');
+            }
+        }
+
+        // TXT阅读器初始化
+        async function initTxtReader() {
+            try {
+                const response = await fetch(filePath);
+                const text = await response.text();
+                document.getElementById('txt-viewer').innerText = text;
+            } catch (error) {
+                console.error('加载文本文件失败:', error);
+            }
+        }
+
+        // DOC/DOCX阅读器初始化
+        async function initDocReader() {
+            try {
+                const response = await fetch(`/convert-doc?path=${encodeURIComponent(filePath)}`);
+                const html = await response.text();
+                document.getElementById('doc-viewer').innerHTML = html;
+            } catch (error) {
+                console.error('加载Word文档失败:', error);
+            }
+        }
+
+        // 在 script 标签中添加进度保存函数
+        async function saveProgress(progress) {
+            const maxRetries = 3;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    console.log('保存进度:', progress);
+                    const response = await fetch(`/books/<%= book.id %>/progress`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(progress)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        throw new Error(result.error || '保存进度失败');
+                    }
+
+                    console.log('进度保存成功');
+                    break;
+                } catch (error) {
+                    console.error(`保存进度失败 (尝试 ${i + 1}/${maxRetries}):`, error);
+                    if (i === maxRetries - 1) {
+                        console.error('达到最大重试次数，放弃保存进度');
+                    } else {
+                        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                    }
+                }
+            }
+        }
+
+        // 字体大小控制函数
+        function changeFontSize(action) {
+            const oldSize = currentFontSize;
+            
+            if (action === 'increase' && currentFontSize < MAX_FONT_SIZE) {
+                currentFontSize += FONT_STEP;
+            } else if (action === 'decrease' && currentFontSize > MIN_FONT_SIZE) {
+                currentFontSize -= FONT_STEP;
+            }
+
+            if (oldSize !== currentFontSize) {
+                // 更新显示
+                document.getElementById('fontSizeDisplay').textContent = `${currentFontSize}%`;
+                
+                // 更新阅读器字体大小
+                if (window.rendition) {
+                    rendition.themes.fontSize(`${currentFontSize}%`);
+                }
+
+                // 保存字体大小设置
+                saveProgress({
+                    fontSize: currentFontSize,
+                    percentage: getCurrentProgress()
+                });
+            }
+        }
+
+        // 获取当前进度的辅助函数
+        function getCurrentProgress() {
+            if (window.book && window.rendition) {
+                try {
+                    const location = rendition.location;
+                    if (location && book.locations && book.locations.total) {
+                        return Math.floor(book.locations.percentageFromCfi(location.start.cfi) * 100);
+                    }
+                } catch (error) {
+                    console.error('获取进度失败:', error);
+                }
+            }
+            return 0;
+        }
+
+        // 修改触摸事件处理
+        function initTouchEvents() {
+            const viewer = document.getElementById('viewer');
+            let touchStartX = null;
+            let touchStartTime = null;
+
+            viewer.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartTime = Date.now();
+                e.preventDefault(); // 防止默认行为
+            }, { passive: false });
+
+            viewer.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // 防止页面滚动
+            }, { passive: false });
+
+            viewer.addEventListener('touchend', (e) => {
+                if (!touchStartX) return;
+
+                const touchEndX = e.changedTouches[0].clientX;
+                const touchEndTime = Date.now();
+                const deltaX = touchEndX - touchStartX;
+                const deltaTime = touchEndTime - touchStartTime;
+
+                // 如果移动距离大于50像素且时间小于300ms，认为是有效的滑动
+                if (Math.abs(deltaX) > 50 && deltaTime < 300) {
+                    if (deltaX > 0) {
+                        prevPage();
+                    } else {
+                        nextPage();
+                    }
+                }
+
+                touchStartX = null;
+                touchStartTime = null;
+                e.preventDefault();
+            }, { passive: false });
+        }
+
+        // 修改样式，确保阅读器容器正确显示
+        document.getElementById('viewer').style.cssText = `
+            flex: 1;
+            background: white;
+            margin: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+            height: calc(100vh - 120px);
+        `;
+
+        // 初始化触摸事件
+        if (fileType === '.epub' || fileType === '.pdf') {
+            initTouchEvents();
+        }
+
+        // 添加全局错误处理
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('全局错误:', {
+                message: msg,
+                url: url,
+                line: line,
+                column: col,
+                error: error
+            });
+            return false;
+        };
+
+        // 添加未捕获的Promise错误处理
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('未处理的Promise错误:', event.reason);
+        });
     </script>
-    <script src="/js/reader.js"></script>
 </body>
 </html> 

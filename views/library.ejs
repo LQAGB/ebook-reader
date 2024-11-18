@@ -3,51 +3,1060 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的图书馆 - 在线电子书阅读平台</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <title>优雅阅读 - 我的图书馆</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            min-height: 100vh;
+        }
+        .header {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        .site-title {
+            font-size: 1.8rem;
+            margin: 0;
+            background: linear-gradient(45deg, #0071e3, #00a0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .username {
+            color: #666;
+            margin: 0 1rem;
+            white-space: nowrap;
+        }
+        .action-button {
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .primary-button {
+            background: #0071e3;
+            color: white;
+        }
+        .primary-button:hover {
+            background: #0077ed;
+            transform: translateY(-1px);
+        }
+        .secondary-button {
+            background: #f5f5f7;
+            color: #1d1d1f;
+        }
+        .secondary-button:hover {
+            background: #e5e5e7;
+        }
+        .book-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .book-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            will-change: transform;
+            transform: translateZ(0);
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+            cursor: pointer;
+            position: relative;
+        }
+        .book-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .book-cover-container {
+            width: 100%;
+            height: 200px;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            position: relative;
+            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .book-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .book-title {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            color: #1d1d1f;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .book-progress {
+            margin-top: auto;
+            margin-bottom: 10px;
+        }
+        .book-actions {
+            display: flex;
+            gap: 10px;
+            padding: 1rem;
+            background: white;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 1px solid #eee;
+        }
+        .read-button, .delete-button {
+            flex: 1;
+            padding: 8px 0;
+            text-align: center;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        .read-button {
+            background: #0071e3;
+            color: white;
+            text-decoration: none;
+        }
+        .delete-button {
+            background: #ff3b30;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .read-button:hover {
+            background: #0077ed;
+        }
+        .delete-button:hover {
+            background: #ff453a;
+        }
+        .empty-library {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+            background: white;
+            border-radius: 15px;
+            margin: 2rem auto;
+            max-width: 600px;
+        }
+        /* 上传对话框样式优化 */
+        .upload-dialog {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            z-index: 1000;
+            min-width: 380px;
+            animation: dialogFadeIn 0.3s ease;
+        }
+
+        @keyframes dialogFadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -48%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .dialog-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 999;
+            backdrop-filter: blur(4px);
+            animation: overlayFadeIn 0.3s ease;
+        }
+
+        @keyframes overlayFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .upload-dialog h2 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.5rem;
+            color: #1d1d1f;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            display: none;
+        }
+
+        .file-input-trigger {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #0071e3;
+            border-radius: 15px;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f5f9ff;
+        }
+
+        .file-input-trigger:hover {
+            background: #e8f2ff;
+            border-color: #0077ed;
+        }
+
+        .file-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            fill: #0071e3;
+        }
+
+        .file-input-text {
+            color: #666;
+            margin: 0.5rem 0;
+        }
+
+        .file-name {
+            display: none;
+            margin-top: 1rem;
+            color: #0071e3;
+            font-weight: 500;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 1.5rem;
+        }
+
+        .dialog-button {
+            padding: 10px 24px;
+            border-radius: 20px;
+            border: none;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-button {
+            background: #f5f5f7;
+            color: #1d1d1f;
+        }
+
+        .cancel-button:hover {
+            background: #e5e5e7;
+        }
+
+        .submit-button {
+            background: #0071e3;
+            color: white;
+        }
+
+        .submit-button:hover {
+            background: #0077ed;
+            transform: translateY(-1px);
+        }
+
+        .submit-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .book-cover {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            pointer-events: none;
+            background: #f5f5f7;
+        }
+
+        .book-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .delete-button {
+            background: #ff3b30;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .delete-button:hover {
+            background: #ff453a;
+        }
+
+        /* 确认对话框样式 */
+        .confirm-dialog {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            z-index: 1001;
+            min-width: 300px;
+            text-align: center;
+        }
+
+        .confirm-dialog h3 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        .confirm-dialog-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .confirm-dialog button {
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .confirm-delete {
+            background: #ff3b30;
+            color: white;
+        }
+
+        .confirm-delete:hover {
+            background: #ff453a;
+        }
+
+        .cancel-delete {
+            background: #666;
+            color: white;
+        }
+
+        .cancel-delete:hover {
+            background: #777;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .username {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .login-button,
+        .register-button,
+        .logout-button {
+            background: #666;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .login-button:hover,
+        .register-button:hover,
+        .logout-button:hover {
+            background: #777;
+        }
+
+        .dialog {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            z-index: 1000;
+            min-width: 380px;
+            animation: dialogFadeIn 0.3s ease;
+        }
+
+        .dialog h2 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.8rem;
+            color: #1d1d1f;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #0071e3;
+            box-shadow: 0 0 0 2px rgba(0,113,227,0.1);
+        }
+
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 2rem;
+        }
+
+        .dialog-button {
+            padding: 10px 24px;
+            border-radius: 20px;
+            border: none;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .book-progress {
+            position: relative;
+            height: 4px;
+            background: #eee;
+            border-radius: 2px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+
+        .book-progress-bar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: #0071e3;
+            transition: width 0.3s ease;
+        }
+
+        .book-progress-text {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .book-last-read {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .book-cover-container {
+            width: 100%;
+            height: 200px;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            position: relative;
+            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+            overflow: hidden;
+        }
+
+        .book-cover-content {
+            position: absolute;
+            top: 5%;
+            left: 5%;
+            width: 90%;
+            height: 90%;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+
+        .book-type {
+            font-size: 1.5rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .book-title-preview {
+            font-size: 0.9rem;
+            color: #999;
+            text-align: center;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .cover-progress {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 113, 227, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .reading-info {
+            margin-top: auto;
+            padding: 10px 0;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #eee;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #0071e3;
+            transition: width 0.3s ease;
+        }
+
+        .reading-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .progress-text {
+            font-weight: 500;
+            color: #0071e3;
+        }
+
+        .last-read-time {
+            color: #999;
+        }
+
+        .book-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 0 1rem;
+        }
+
+        .book-title {
+            margin: 0 0 10px 0;
+            font-size: 1.1rem;
+            line-height: 1.4;
+            max-height: 2.8em;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <nav class="nav-bar">
-                <a href="/" class="nav-link">首页</a>
-                <h1>我的图书馆</h1>
-            </nav>
-        </header>
-        
-        <main>
-            <div class="library-grid">
-                <% if (books && books.length > 0) { %>
-                    <% books.forEach(function(book) { %>
-                        <div class="book-card">
-                            <div class="book-cover">
-                                <div class="format-badge <%= book.file_type %>"><%= book.file_type %></div>
-                                <svg class="file-icon" viewBox="0 0 24 24">
-                                    <path d="M14,2H6C4.9,2,4,2.9,4,4v16c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2V8L14,2z"/>
-                                </svg>
-                            </div>
-                            <div class="book-info">
-                                <h3 class="book-title"><%= book.original_name %></h3>
-                                <p class="book-format">格式: <%= book.file_type.toUpperCase() %></p>
-                                <% if (book.last_read) { %>
-                                    <p class="last-read">上次阅读: 第<%= book.current_page %>页</p>
-                                <% } %>
-                                <a href="/read/<%= book.id %>" class="read-btn">开始阅读</a>
-                            </div>
-                        </div>
-                    <% }); %>
+    <div class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="site-title">优雅阅读</h1>
+            </div>
+            <div class="header-actions">
+                <% if (user) { %>
+                    <button class="action-button primary-button" onclick="showUploadDialog()">上传电子书</button>
+                    <span class="username">欢迎，<%= user.username %></span>
+                    <button class="action-button secondary-button" onclick="logout()">退出登录</button>
                 <% } else { %>
-                    <div class="empty-library">
-                        <svg class="empty-icon" viewBox="0 0 24 24">
-                            <path d="M19 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H5V4h14v16z"/>
-                            <path d="M7 15h10v2H7zm0-4h10v2H7zm0-4h7v2H7z"/>
-                        </svg>
-                        <p>图书馆还是空的，快去上传一些电子书吧！</p>
-                        <a href="/" class="btn">上传电子书</a>
-                    </div>
+                    <button class="action-button secondary-button" onclick="showLoginDialog()">登录</button>
+                    <button class="action-button primary-button" onclick="showRegisterDialog()">注册</button>
                 <% } %>
             </div>
-        </main>
+        </div>
     </div>
+
+    <!-- 上传对话框 -->
+    <div class="dialog-overlay" id="overlay"></div>
+    <div class="upload-dialog" id="uploadDialog">
+        <h2>上传电子书</h2>
+        <form class="upload-form" action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+            <div class="file-input-wrapper">
+                <label class="file-input-trigger" for="bookFile" id="fileInputLabel">
+                    <svg class="file-icon" viewBox="0 0 24 24">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                    </svg>
+                    <div class="file-input-text">点击或拖拽文件到此处</div>
+                    <div class="file-input-text">支持 EPUB、PDF、TXT、DOC、DOCX 格式</div>
+                    <div class="file-name" id="fileName"></div>
+                </label>
+                <input type="file" name="book" accept=".epub,.pdf,.txt,.doc,.docx" required id="bookFile">
+            </div>
+            <div class="dialog-buttons">
+                <button type="button" class="dialog-button cancel-button" onclick="hideUploadDialog()">取消</button>
+                <button type="submit" class="dialog-button submit-button" id="submitButton" disabled>上传</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="book-grid">
+        <% if (books && books.length > 0) { %>
+            <% books.forEach(function(book) { %>
+                <div class="book-card" onclick="window.location.href='/reader/<%= book.id %>'">
+                    <div class="book-cover-container">
+                        <div class="book-cover-content">
+                            <div class="book-type"><%= book.fileType.toUpperCase().replace('.', '') %></div>
+                            <div class="book-title-preview"><%= book.title %></div>
+                            <% if (book.readProgress) { %>
+                                <% const progress = JSON.parse(book.readProgress); %>
+                                <div class="cover-progress">
+                                    <%= progress.percentage %>%
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                    <div class="book-info">
+                        <h3 class="book-title"><%= book.title %></h3>
+                        
+                        <% try { %>
+                            <% if (book.readProgress) { %>
+                                <% const progress = JSON.parse(book.readProgress); %>
+                                <div class="reading-info">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: <%= progress.percentage %>%"></div>
+                                    </div>
+                                    <div class="reading-stats">
+                                        <span class="progress-text">已读 <%= progress.percentage %>%</span>
+                                        <% if (book.lastRead) { %>
+                                            <span class="last-read-time">
+                                                <%= new Date(book.lastRead).toLocaleString('zh-CN', {
+                                                    month: 'numeric',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                }) %>
+                                            </span>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            <% } %>
+                        <% } catch (e) { %>
+                            <!-- 处理 JSON 解析错误 -->
+                        <% } %>
+                    </div>
+                    
+                    <div class="book-actions" onclick="event.stopPropagation()">
+                        <a href="/reader/<%= book.id %>" class="read-button">
+                            <%= book.readProgress ? '继续阅读' : '开始阅读' %>
+                        </a>
+                        <button class="delete-button" onclick="confirmDelete(<%= book.id %>, '<%= book.title.replace(/'/g, "\\'") %>')">删除</button>
+                    </div>
+                </div>
+            <% }); %>
+        <% } else { %>
+            <div class="empty-library">
+                <p>图书馆还是空的，点击上方的"上传电子书"按钮添加你的第一本书吧！</p>
+            </div>
+        <% } %>
+    </div>
+
+    <!-- 添加确认对话框 -->
+    <div class="confirm-dialog" id="confirmDialog">
+        <h3>确认删除</h3>
+        <p>确定要删除 "<span id="deleteBookTitle"></span>" 吗？</p>
+        <div class="confirm-dialog-buttons">
+            <button class="cancel-delete" onclick="hideConfirmDialog()">取消</button>
+            <button class="confirm-delete" onclick="deleteBook()">删除</button>
+        </div>
+    </div>
+
+    <!-- 添加登录对话框 -->
+    <div class="dialog" id="loginDialog">
+        <h2>登录</h2>
+        <form id="loginForm" onsubmit="return handleLogin(event)">
+            <div class="form-group">
+                <label for="loginUsername">用户名</label>
+                <input type="text" id="loginUsername" required>
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">密码</label>
+                <input type="password" id="loginPassword" required>
+            </div>
+            <div class="dialog-buttons">
+                <button type="button" class="dialog-button secondary-button" onclick="hideLoginDialog()">取消</button>
+                <button type="submit" class="dialog-button primary-button">登录</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 添加注册对话框 -->
+    <div class="dialog" id="registerDialog">
+        <h2>注册</h2>
+        <form id="registerForm" onsubmit="return handleRegister(event)">
+            <div class="form-group">
+                <label for="registerUsername">用户名</label>
+                <input type="text" id="registerUsername" required>
+            </div>
+            <div class="form-group">
+                <label for="registerEmail">邮箱</label>
+                <input type="email" id="registerEmail" required>
+            </div>
+            <div class="form-group">
+                <label for="registerPassword">密码</label>
+                <input type="password" id="registerPassword" required>
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">确认密码</label>
+                <input type="password" id="confirmPassword" required>
+            </div>
+            <div class="dialog-buttons">
+                <button type="button" class="dialog-button secondary-button" onclick="hideRegisterDialog()">取消</button>
+                <button type="submit" class="dialog-button primary-button">注册</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('bookFile');
+        const fileName = document.getElementById('fileName');
+        const submitButton = document.getElementById('submitButton');
+        const fileInputLabel = document.getElementById('fileInputLabel');
+
+        function showUploadDialog() {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('uploadDialog').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideUploadDialog() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('uploadDialog').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            // 重置表单
+            document.getElementById('uploadForm').reset();
+            fileName.style.display = 'none';
+            submitButton.disabled = true;
+        }
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const ext = file.name.toLowerCase().split('.').pop();
+                const supportedFormats = ['epub', 'pdf', 'txt', 'doc', 'docx'];
+                
+                if (!supportedFormats.includes(ext)) {
+                    alert('不支持的文件格式。支持的格式：EPUB、PDF、TXT、DOC、DOCX');
+                    this.value = '';
+                    fileName.style.display = 'none';
+                    submitButton.disabled = true;
+                    return;
+                }
+                
+                fileName.textContent = file.name;
+                fileName.style.display = 'block';
+                submitButton.disabled = false;
+            } else {
+                fileName.style.display = 'none';
+                submitButton.disabled = true;
+            }
+        });
+
+        // 拖拽上传支持
+        fileInputLabel.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileInputLabel.style.background = '#e8f2ff';
+            fileInputLabel.style.borderColor = '#0077ed';
+        });
+
+        fileInputLabel.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            fileInputLabel.style.background = '#f5f9ff';
+            fileInputLabel.style.borderColor = '#0071e3';
+        });
+
+        fileInputLabel.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileInputLabel.style.background = '#f5f9ff';
+            fileInputLabel.style.borderColor = '#0071e3';
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const ext = file.name.toLowerCase().split('.').pop();
+                const supportedFormats = ['epub', 'pdf', 'txt', 'doc', 'docx'];
+                
+                if (!supportedFormats.includes(ext)) {
+                    alert('不支持的文件格式。支持的格式：EPUB、PDF、TXT、DOC、DOCX');
+                    return;
+                }
+                
+                fileInput.files = e.dataTransfer.files;
+                fileName.textContent = file.name;
+                fileName.style.display = 'block';
+                submitButton.disabled = false;
+            }
+        });
+
+        // 点击遮罩层关对话框
+        document.getElementById('overlay').addEventListener('click', hideUploadDialog);
+
+        let deleteBookId = null;
+
+        function confirmDelete(id, title) {
+            deleteBookId = id;
+            document.getElementById('deleteBookTitle').textContent = title;
+            document.getElementById('confirmDialog').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        function hideConfirmDialog() {
+            document.getElementById('confirmDialog').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            deleteBookId = null;
+        }
+
+        async function deleteBook() {
+            if (!deleteBookId) return;
+
+            try {
+                console.log('正在删除书籍:', deleteBookId);
+                const response = await fetch('/books/' + deleteBookId, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('删除请求状态:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    throw new Error(result.error || '删除失败');
+                }
+            } catch (error) {
+                console.error('删除失败:', error);
+                alert('删除失败: ' + error.message);
+            } finally {
+                hideConfirmDialog();
+            }
+        }
+
+        // 点击遮罩层同时关闭上传对话框和确认对话框
+        document.getElementById('overlay').addEventListener('click', () => {
+            hideUploadDialog();
+            hideConfirmDialog();
+        });
+
+        function showLoginDialog() {
+            document.getElementById('loginDialog').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        function hideLoginDialog() {
+            document.getElementById('loginDialog').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('loginForm').reset();
+        }
+
+        function showRegisterDialog() {
+            document.getElementById('registerDialog').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        function hideRegisterDialog() {
+            document.getElementById('registerDialog').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('registerForm').reset();
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!username || !password) {
+                alert('请填写用户名和密码');
+                return;
+            }
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert(result.error || '登录失败');
+                }
+            } catch (error) {
+                console.error('登录失败:', error);
+                alert('登录失败，请稍后重试');
+            }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('registerUsername').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!username || !email || !password) {
+                alert('请填写所有必填字段');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                alert('两次输入的密码不一致');
+                return;
+            }
+
+            if (password.length < 6) {
+                alert('密码长度至少为6位');
+                return;
+            }
+
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert(result.error || '注册失败');
+                }
+            } catch (error) {
+                console.error('注册失败:', error);
+                alert('注册失败，请稍后重试');
+            }
+        }
+
+        async function logout() {
+            if (!confirm('确定要退出登录吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/logout', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert(result.error || '退出失败');
+                }
+            } catch (error) {
+                console.error('退出失败:', error);
+                alert('退出失败，请稍后重试');
+            }
+        }
+
+        // 添加按下 ESC 键关闭对话框的功能
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideLoginDialog();
+                hideRegisterDialog();
+                hideUploadDialog();
+            }
+        });
+    </script>
 </body>
 </html> 
